@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jogo de Nave Espacial</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas {
+            background: #000;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const spaceshipWidth = 50;
+        const spaceshipHeight = 50;
+        const spaceshipSpeed = 5; // Velocidade dos inimigos
+        const playerSpaceshipSpeed = 10; // Velocidade da sua nave
+        const explosionImg = new Image(); // Imagem de explosão
+        explosionImg.src = 'explosao.png'; // Substitua 'explosao.png' pelo nome do seu arquivo de imagem de explosão
+
+        const bulletWidth = 5;
+        const bulletHeight = 20;
+        const bulletSpeed = 5;
+
+        let spaceshipX = canvas.width / 2 - spaceshipWidth / 2;
+        let bullets = [];
+        let enemies = [];
+        let playerExploded = false; // Rastreia se a nave do jogador explodiu
+
+        function drawSpaceship() {
+            if (playerExploded) {
+                // Desenha a explosão se a nave explodiu
+                ctx.drawImage(explosionImg, spaceshipX, canvas.height - spaceshipHeight);
+            } else {
+                ctx.fillStyle = '#00ff00';
+                ctx.fillRect(spaceshipX, canvas.height - spaceshipHeight, spaceshipWidth, spaceshipHeight);
+            }
+        }
+
+        // Verifica colisões entre retângulos
+        function checkCollision(rect1, rect2) {
+            return (
+                rect1.x < rect2.x + spaceshipWidth &&
+                rect1.x + spaceshipWidth > rect2.x &&
+                rect1.y < rect2.y + spaceshipHeight &&
+                rect1.y + spaceshipHeight > rect2.y
+            );
+        }
+
+        // Verifica colisões e remove inimigos atingidos
+        function checkCollisions() {
+            if (playerExploded) return;
+
+            for (let i = 0; i < bullets.length; i++) {
+                for (let j = 0; j < enemies.length; j++) {
+                    if (checkCollision(bullets[i], enemies[j])) {
+                        bullets.splice(i, 1); // Remove o projétil
+                        enemies.splice(j, 1); // Remove o inimigo
+                        break; // Sai do loop interno
+                    }
+                }
+            }
+
+            for (let enemy of enemies) {
+                if (
+                    checkCollision({ x: spaceshipX, y: canvas.height - spaceshipHeight }, enemy)
+                ) {
+                    // Colisão com inimigo
+                    playerExploded = true;
+                    setTimeout(() => {
+                        // Reinicie o jogo após um atraso
+                        restartGame();
+                    }, 1000);
+                }
+            }
+        }
+
+        function restartGame() {
+            playerExploded = false;
+            spaceshipX = canvas.width / 2 - spaceshipWidth / 2;
+            bullets = [];
+            enemies = [];
+        }
+
+        function createEnemy() {
+            const enemyX = Math.random() * (canvas.width - spaceshipWidth);
+            enemies.push({ x: enemyX, y: 0 });
+        }
+
+        function drawEnemies() {
+            ctx.fillStyle = '#ff0000';
+            for (let enemy of enemies) {
+                ctx.fillRect(enemy.x, enemy.y, spaceshipWidth, spaceshipHeight);
+            }
+        }
+
+        function createBullet() {
+            bullets.push({ x: spaceshipX + spaceshipWidth / 2 - bulletWidth / 2, y: canvas.height - spaceshipHeight });
+        }
+
+        function drawBullets() {
+            ctx.fillStyle = '#ffff00';
+            for (let bullet of bullets) {
+                ctx.fillRect(bullet.x, bullet.y, bulletWidth, bulletHeight);
+            }
+        }
+
+        function update() {
+            // Atualizar o jogo aqui
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!playerExploded) {
+                // Atualize sua nave, projéteis e inimigos aqui
+                if (Math.random() < 0.02) {
+                    createEnemy();
+                }
+
+                for (let enemy of enemies) {
+                    enemy.y += spaceshipSpeed;
+                }
+
+                bullets = bullets.filter(bullet => bullet.y > 0);
+                for (let bullet of bullets) {
+                    bullet.y -= bulletSpeed;
+                }
+
+                // Verifique colisões
+                checkCollisions();
+            }
+
+            // Desenhe a nave do jogador, inimigos e projéteis
+            drawSpaceship();
+            drawEnemies();
+            drawBullets();
+
+            requestAnimationFrame(update);
+        }
+
+        // Controle da nave do jogador
+        document.addEventListener('keydown', (event) => {
+            if (!playerExploded) {
+                if (event.key === ' ') {
+                    createBullet();
+                } else if (event.key === 'ArrowLeft' && spaceshipX > 0) {
+                    spaceshipX -= playerSpaceshipSpeed; // Use a velocidade da sua nave aqui
+                } else if (event.key === 'ArrowRight' && spaceshipX < canvas.width - spaceshipWidth) {
+                    spaceshipX += playerSpaceshipSpeed; // Use a velocidade da sua nave aqui
+                }
+            }
+        });
+
+        // Iniciar o jogo
+        update();
+    </script>
+</body>
+</html>
